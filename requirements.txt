@@ -83,6 +83,7 @@ setuptools-scm==6.3.2
 six==1.16.0
 smmap==5.0.0
 streamlit==1.2.0
+streamlit-elements==0.1.*
 tenacity==8.0.1
 terminado==0.12.1
 testpath==0.5.0
