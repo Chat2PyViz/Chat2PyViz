@@ -59,30 +59,30 @@ def get_session_id():
 st.session_state.id = str(get_session_id())
 
 
-### Init Figure
-def init_widgets():
-    if "xaxis" in st.session_state:
-        del st.session_state.xaxis
-    if "yaxis" in st.session_state:
-        del st.session_state.yaxis
-    if "title" in st.session_state:
-        del st.session_state.title
-    if "xlim_start" in st.session_state:
-        del st.session_state.xlim_start
-    if "xlim_end" in st.session_state:
-        del st.session_state.xlim_end
-    if "ylim_start" in st.session_state:
-        del st.session_state.ylim_start
-    if "ylim_end" in st.session_state:
-        del st.session_state.ylim_end
-    return True
+# ### Init Figure
+# def init_widgets():
+#     if "xaxis" in st.session_state:
+#         del st.session_state.xaxis
+#     if "yaxis" in st.session_state:
+#         del st.session_state.yaxis
+#     if "title" in st.session_state:
+#         del st.session_state.title
+#     if "xlim_start" in st.session_state:
+#         del st.session_state.xlim_start
+#     if "xlim_end" in st.session_state:
+#         del st.session_state.xlim_end
+#     if "ylim_start" in st.session_state:
+#         del st.session_state.ylim_start
+#     if "ylim_end" in st.session_state:
+#         del st.session_state.ylim_end
+#     return True
 
 
 ### Layout Sidebar
 # API Configuration
 st.sidebar.markdown("### API Configuration ###")
 
-options = ["OpenAI API", "HuggingFace API", "Free OpenAI API"]
+options = ["OpenAI API"]  # , "HuggingFace API", "Free OpenAI API"]
 selected_option = st.sidebar.radio("Select an option:", options)
 
 if "OpenAI API" in selected_option:
@@ -107,12 +107,13 @@ option = st.sidebar.selectbox(
     "Which dataset do you want to use?",
     datafiles,
     key="dataset",
-    on_change=init_widgets,
 )
 
 # File Upload
 uploaded_file = st.sidebar.file_uploader(
-    "Or upload a file:", type=["csv"], key="fileupload", on_change=init_widgets
+    "Or upload a file:",
+    type=["csv"],
+    key="fileupload",
 )
 if uploaded_file != None:
     try:
@@ -180,7 +181,7 @@ def getGPT3():
         ]
         # print("!!!" + messages + "!!!")
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo", max_tokens=1024, messages=messages
+            model="gpt-3.5-turbo", max_tokens=500, messages=messages
         )
         expr = response["choices"][0]["message"]["content"]
         print(expr)
@@ -197,10 +198,14 @@ def create_figure():
     plt.style.use("ggplot")
     plt.rcParams["figure.figsize"] = (10, 5)
 
-    if "comand_output" in st.session_state:
-        my_exec(st.session_state.comand_output)
+    fig = None
 
-    fig = plt.gcf()
+    if (
+        "comand_output" in st.session_state
+        and st.session_state.comand_output != "# The code will be shown in this editor."
+    ):
+        my_exec(st.session_state.comand_output)
+        fig = plt.gcf()
 
     return fig
 
@@ -224,11 +229,11 @@ col1, col2 = st.columns(2)
 with col1:
     # st.write(st.session_state)
 
-    # if "comand_output" not in st.session_state:
-    #     st.session_state.comand_output = "The code will be shown in this editor."
+    if "comand_output" not in st.session_state:
+        st.session_state.comand_output = "# The code will be shown in this editor."
 
-    # def update_content(value):
-    #     st.session_state.comand_output = value
+    def update_content(value):
+        st.session_state.comand_output = value
 
     # # Next, create a dashboard layout using the 'with' syntax. It takes the layout
     # # as first parameter, plus additional properties you can find in the GitHub links below.
@@ -237,43 +242,75 @@ with col1:
     #     # You can pass it back to dashboard.Grid() if you want to restore a saved layout.
     #     print(updated_layout)
 
-    # with elements("code_editor"):
-    #     editor.Monaco(
-    #         height=300,
-    #         defaultValue=st.session_state.comand_output,
-    #         onChange=lazy(update_content),
-    #         key="code_editor",
-    #     )
-    #     mui.Button("Update content", onClick=sync())
-    if "comand_output" not in st.session_state:
-        st.session_state.comand_output = "The code will be shown in this editor."
+    st.session_state.number = random.randint(0, 10000)
+    previous = "# The code will be shown in this editor."
 
-    if "w" not in st.session_state:
-        board = Dashboard()
-        w = SimpleNamespace(
-            dashboard=board,
-            editor=Editor(board, 0, 0, 6, 11, minW=3, minH=3),
-        )
-        st.session_state.w = w
+    # st.write(st.session_state)
 
-        w.editor.add_tab("Code", st.session_state.comand_output, "python")
+    if st.session_state.comand_output == previous:
+        with elements("code_initial"):
+            editor.Monaco(
+                height=600,
+                defaultValue=st.session_state.comand_output,
+                onChange=lazy(update_content),
+                language="python",
+                theme="vs-dark",
+                key="code_editor",
+            )
+            mui.Button("Run", onClick=sync())
     else:
-        w = st.session_state.w
+        with elements(f"code_editor_{st.session_state.number}"):
+            editor.Monaco(
+                height=600,
+                defaultValue=st.session_state.comand_output,
+                onChange=lazy(update_content),
+                language="python",
+                theme="vs-dark",
+                key=f"code_editor_{st.session_state.number}",
+            )
+            mui.Button("Run", onClick=sync())
 
-    # with w.dashboard(rowHeight=57):
+    # if "w" not in st.session_state:
+    #     board = Dashboard()
+    #     w = SimpleNamespace(
+    #         dashboard=board,
+    #         editor=Editor(board, 0, 0, 6, 11, minW=3, minH=3),
+    #     )
+    #     st.session_state.w = w
+
+    #     w.editor.add_tab("Code", st.session_state.comand_output, "python")
+    # else:
+    #     w = st.session_state.w
+
+    # if (
+    #     "comand_output" in st.session_state
+    #     and st.session_state.comand_output != "# The code will be shown in this editor."
+    # ):
     #     w.editor.update_content("Code", st.session_state.comand_output)
+    # with elements("change"):
+    #     event.Hotkey(
+    #         "enter",
+    #         sync(st.session_state.comand_output),
+    #         bindInputs=True,
+    #         overrideDefault=True,
+    #     )
 
-    with elements("demo"):
-        event.Hotkey("ctrl+s", sync(), bindInputs=True, overrideDefault=True)
+    #     with w.dashboard(rowHeight=57):
+    #         w.editor.update_content("Code", st.session_state.comand_output)
 
-        with w.dashboard(rowHeight=57):
-            w.editor(w.editor.update_content("Code", st.session_state.comand_output))
+    # with elements("demo"):
+    #     event.Hotkey("ctrl+s", sync(), bindInputs=False, overrideDefault=True)
+
+    #     with w.dashboard(rowHeight=57):
+    #         w.editor()
 # if "comand_output" in st.session_state:
 #     st.code(st.session_state.comand_output, language="python")
 
 with col2:
     fig = create_figure()
-    st.pyplot(fig=fig)
+    if fig is not None:
+        st.pyplot(fig=fig)
+
     # with elements("dashboard"):
     #     # First, build a default layout for every element you want to include in your dashboard
     #     layout = [

@@ -30,7 +30,7 @@ class Editor(Dashboard.Item):
     def get_content(self, label):
         return self._tabs[label]["content"]
 
-    def __call__(self, content):
+    def __call__(self):
         with mui.Paper(
             key=self._key,
             sx={
@@ -61,7 +61,7 @@ class Editor(Dashboard.Item):
                         css={"padding": "0 2px 0 2px"},
                         defaultValue=tab["content"],
                         language=tab["language"],
-                        onChange=lazy(partial(self.update_content, label, content)),
+                        onChange=sync(partial(self.update_content, label)),
                         theme="vs-dark" if self._dark_mode else "light",
                         path=label,
                         options={"wordWrap": True},
