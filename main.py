@@ -8,6 +8,10 @@ import numpy as np
 import random
 import requests
 import pickle
+from pathlib import Path
+from streamlit_elements import elements, mui, html, editor, lazy, sync, event, dashboard
+from dashboard import Dashboard, Editor, Card, DataGrid, Radar, Pie, Player
+from types import SimpleNamespace
 from streamlit.scriptrunner import get_script_run_ctx as get_report_ctx
 from matplotlib.colors import to_hex
 import os
@@ -25,6 +29,7 @@ st.set_page_config(layout="wide", page_title="Chat2PyViz", page_icon=":python:")
 
 st.markdown(
     """ <style>
+header {visibility: hidden;}
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 </style> """,
@@ -153,18 +158,8 @@ def my_exec(script):
     return None
 
 
-### Layout Main ###
-col1, col2 = st.columns([8, 2])
-
-
-def set_widgets():
-    with col2:
-        pass
-
-
 ### Query Code from getGPT3
 def getGPT3():
-    on_change = init_widgets()
     if st.session_state.comand_input == "":
         expr = ""
     else:
@@ -210,27 +205,115 @@ def create_figure():
     return fig
 
 
+### Layout Main ###
+st.header("Create Charts with Commands in Natural Language")
+demo_video = st.expander(label="Tutorial Video")
+with demo_video:
+    # video_file = open('NLP2Chart.mp4', 'rb')
+    # video_bytes = video_file.read()
+    st.video(data="https://youtu.be/UiCSczhslAs")
+st.text_input(
+    "Input the prompt:",
+    key="comand_input",
+    on_change=getGPT3,
+    help="Examples: \n Plot a sinus function from -4 pi to 4 pi; \n Make an array of 400 random numbers and plot a horizontal histogram; \n plot sum of total_cases grouped by location as bar chart (COVID19 Data)",
+)
+### Columns ###
+col1, col2 = st.columns(2)
+
 with col1:
     # st.write(st.session_state)
-    st.header("Create Charts with Commands in Natural Language")
-    demo_video = st.expander(label="Tutorial Video")
-    with demo_video:
-        # video_file = open('NLP2Chart.mp4', 'rb')
-        # video_bytes = video_file.read()
-        st.video(data="https://youtu.be/UiCSczhslAs")
-    st.text_input(
-        "Advise the system",
-        key="comand_input",
-        on_change=getGPT3,
-        help="Examples: \n Plot a sinus function from -4 pi to 4 pi; \n Make an array of 400 random numbers and plot a horizontal histogram; \n plot sum of total_cases grouped by location as bar chart (COVID19 Data)",
-    )
-    if "comand_output" in st.session_state:
-        st.code(st.session_state.comand_output, language="python")
-        fig = create_figure()
-        st.pyplot(fig=fig)
 
+    # if "comand_output" not in st.session_state:
+    #     st.session_state.comand_output = "The code will be shown in this editor."
 
-set_widgets()
+    # def update_content(value):
+    #     st.session_state.comand_output = value
+
+    # # Next, create a dashboard layout using the 'with' syntax. It takes the layout
+    # # as first parameter, plus additional properties you can find in the GitHub links below.
+    # def handle_layout_change(updated_layout):
+    #     # You can save the layout in a file, or do anything you want with it.
+    #     # You can pass it back to dashboard.Grid() if you want to restore a saved layout.
+    #     print(updated_layout)
+
+    # with elements("code_editor"):
+    #     editor.Monaco(
+    #         height=300,
+    #         defaultValue=st.session_state.comand_output,
+    #         onChange=lazy(update_content),
+    #         key="code_editor",
+    #     )
+    #     mui.Button("Update content", onClick=sync())
+    if "comand_output" not in st.session_state:
+        st.session_state.comand_output = "The code will be shown in this editor."
+
+    if "w" not in st.session_state:
+        board = Dashboard()
+        w = SimpleNamespace(
+            dashboard=board,
+            editor=Editor(board, 0, 0, 6, 11, minW=3, minH=3),
+        )
+        st.session_state.w = w
+
+        w.editor.add_tab("Code", st.session_state.comand_output, "python")
+    else:
+        w = st.session_state.w
+
+    # with w.dashboard(rowHeight=57):
+    #     w.editor.update_content("Code", st.session_state.comand_output)
+
+    with elements("demo"):
+        event.Hotkey("ctrl+s", sync(), bindInputs=True, overrideDefault=True)
+
+        with w.dashboard(rowHeight=57):
+            w.editor(w.editor.update_content("Code", st.session_state.comand_output))
+# if "comand_output" in st.session_state:
+#     st.code(st.session_state.comand_output, language="python")
+
+with col2:
+    fig = create_figure()
+    st.pyplot(fig=fig)
+    # with elements("dashboard"):
+    #     # First, build a default layout for every element you want to include in your dashboard
+    #     layout = [
+    #         # Parameters: element_identifier, x_pos, y_pos, width, height, [item properties...]
+    #         dashboard.Item("visualization", 2, 0, 2, 2),
+    #     ]
+
+    #     if "comand_output" not in st.session_state:
+    #         st.session_state.comand_output = "# The code will be shown in this editor."
+
+    #     def update_content(value):
+    #         st.session_state.comand_output = value
+
+    #     # Next, create a dashboard layout using the 'with' syntax. It takes the layout
+    #     # as first parameter, plus additional properties you can find in the GitHub links below.
+    #     def handle_layout_change(updated_layout):
+    #         # You can save the layout in a file, or do anything you want with it.
+    #         # You can pass it back to dashboard.Grid() if you want to restore a saved layout.
+    #         print(updated_layout)
+
+    #     with dashboard.Grid(layout, onLayoutChange=handle_layout_change):
+    #         mui.Paper("first item", key="visualization")
+
+    # If you want to retrieve updated layout values as the user move or resize dashboard items,
+    # you can pass a callback to the onLayoutChange event parameter.
+
+    # editor.Monaco(
+    #     height=300,
+    #     defaultValue=st.session_state.comand_output,
+    #     onChange=update_content,
+    # )
+
+    # mui.Button("Update content", onClick=sync())
+
+    # editor.MonacoDiff(
+    #     original="Happy Streamlit-ing!",
+    #     modified="Happy Streamlit-in' with Elements!",
+    #     height=300,
+    # )
+
 
 ### Export Figures
 
