@@ -13,6 +13,9 @@ from streamlit_elements import elements, mui, html, editor, lazy, sync, event, d
 from dashboard import Dashboard, Editor, Card, DataGrid, Radar, Pie, Player
 from types import SimpleNamespace
 from streamlit.scriptrunner import get_script_run_ctx as get_report_ctx
+from sklearn.manifold import TSNE
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.decomposition import PCA
 from matplotlib.colors import to_hex
 import os
 from os import listdir
@@ -109,6 +112,9 @@ option = st.sidebar.selectbox(
     key="dataset",
 )
 
+# Header
+st.header("Chat2PyViz")
+
 # File Upload
 uploaded_file = st.sidebar.file_uploader(
     "Or upload a file:",
@@ -127,20 +133,21 @@ if uploaded_file != None:
 if option in datafiles:
     ind = datafiles.index(option)
     if option != "No Dataset":
-        df = pd.read_csv(datafiles[ind], index_col=0)
+        df = pd.read_csv(datafiles[ind])  # , index_col=0)
         # print(df.head(6))
+        st.dataframe(df.head(4))
         data = pd.DataFrame(df.dtypes)
         data = data.astype(str)
         data.columns = ["Type"]
         data = data.Type.replace(
             {"object": "String", "float64": "Float", "int64": "Int"}
         )
-        st.sidebar.table(data)
+        # st.sidebar.table(data)
         # print(data)
         st.session_state.csv = datafiles[ind]
         st.session_state.load_data = data.to_string()
     else:
-        st.sidebar.write("No Dataset selected")
+        # st.sidebar.write("No Dataset selected")
         st.session_state.csv = ""
         st.session_state.load_data = ""
 
@@ -211,7 +218,6 @@ def create_figure():
 
 
 ### Layout Main ###
-st.header("Create Charts with Commands in Natural Language")
 demo_video = st.expander(label="Tutorial Video")
 with demo_video:
     # video_file = open('NLP2Chart.mp4', 'rb')
@@ -257,7 +263,7 @@ with col1:
                 theme="vs-dark",
                 key="code_editor",
             )
-            mui.Button("Run", onClick=sync())
+            mui.Button("Run", variant="outlined", onClick=sync())
     else:
         with elements(f"code_editor_{st.session_state.number}"):
             editor.Monaco(
@@ -268,6 +274,7 @@ with col1:
                 theme="vs-dark",
                 key=f"code_editor_{st.session_state.number}",
             )
+            event.Hotkey("ctrl+s", sync(), bindInputs=True, overrideDefault=True)
             mui.Button("Run", onClick=sync())
 
     # if "w" not in st.session_state:
@@ -310,6 +317,16 @@ with col2:
     fig = create_figure()
     if fig is not None:
         st.pyplot(fig=fig)
+        fig.savefig(f"image_{st.session_state.number}.jpeg", format="JPEG")
+        with open(f"image_{st.session_state.number}.jpeg", "rb") as f:
+            st.sidebar.download_button(
+                "Download Image", f, file_name=f"image_{st.session_state.number}.jpeg"
+            )
+        st.sidebar.download_button(
+            label="Download Python file",
+            data=st.session_state.comand_output,
+            file_name=f"python_script_{st.session_state.number}.py",
+        )
 
     # with elements("dashboard"):
     #     # First, build a default layout for every element you want to include in your dashboard
